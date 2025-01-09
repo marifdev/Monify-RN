@@ -1,21 +1,22 @@
 import { useState } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { Text } from '../../src/components';
-import { theme } from '../../src/theme';
-import { useAccounts } from '../../src/hooks/useAccounts';
+import { Text } from '../../../src/components';
+import { theme } from '../../../src/theme';
+import { useAccounts } from '../../../src/hooks/useAccounts';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Account, AccountType } from '../../src/types';
+import { Account, AccountType } from '../../../src/types';
+import { StatusBar } from 'expo-status-bar';
 
 const ACCOUNT_TYPES: { type: AccountType; label: string; icon: string }[] = [
-  { type: 'CASH', label: 'Cash', icon: 'cash' },
-  { type: 'BANK', label: 'Bank Account', icon: 'bank' },
-  { type: 'CREDIT_CARD', label: 'Credit Card', icon: 'credit-card' },
-  { type: 'SAVINGS', label: 'Savings', icon: 'piggy-bank' },
-  { type: 'INVESTMENT', label: 'Investment', icon: 'chart-line' },
+  { type: 'CASH', label: 'Nakit', icon: 'cash' },
+  { type: 'BANK', label: 'Banka', icon: 'bank' },
+  { type: 'CREDIT_CARD', label: 'Kredi Karti', icon: 'credit-card' },
+  // { type: 'SAVINGS', label: 'Birikim', icon: 'piggy-bank' },
+  // { type: 'INVESTMENT', label: 'Yatirim', icon: 'chart-line' },
 ];
 
-export default function AddAccountModal() {
+export default function AddAccountScreen() {
   const { addAccount } = useAccounts();
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');
@@ -33,13 +34,8 @@ export default function AddAccountModal() {
         return;
       }
 
-      if (!balance.trim()) {
-        setError('Initial balance is required');
-        return;
-      }
-
-      const balanceNumber = parseFloat(balance);
-      if (isNaN(balanceNumber)) {
+      const balanceNumber = balance.trim() ? parseFloat(balance) : 0;
+      if (balance.trim() && isNaN(balanceNumber)) {
         setError('Invalid balance amount');
         return;
       }
@@ -48,7 +44,8 @@ export default function AddAccountModal() {
         name: name.trim(),
         balance: balanceNumber,
         type,
-        currency: 'USD',
+        currency: 'TRY',
+        isArchived: false,
       } as Account);
 
       router.back();
@@ -62,6 +59,7 @@ export default function AddAccountModal() {
 
   return (
     <ScrollView style={styles.container}>
+      <StatusBar style="light" />
       <View style={styles.header}>
         <Text style={styles.title}>Add Account</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
@@ -170,8 +168,6 @@ const styles = StyleSheet.create({
     color: theme.colors.black,
   },
   typeContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
   },

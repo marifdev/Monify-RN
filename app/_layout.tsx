@@ -9,9 +9,8 @@ import {
   RobotoSlab_500Medium,
   RobotoSlab_700Bold,
 } from '@expo-google-fonts/roboto-slab';
-import { theme } from '../src/theme';
-import { View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -28,7 +27,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log('firebaseUser', firebaseUser);
       if (firebaseUser) {
         // User is signed in
         const userData = {
@@ -57,15 +55,16 @@ export default function RootLayout() {
   useEffect(() => {
     if (initializing) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
+    const inAuthGroup = segments[0] === '(tabs)';
     const isSignInPage = segments[0] === 'sign-in';
     const isSignUpPage = segments[0] === 'sign-up';
     console.log('segments', segments);
+    console.log('user', user);
     if (user) {
       // If user is authenticated and not in auth group, redirect to auth
       if (!inAuthGroup) {
         console.log('Redirecting to auth group');
-        router.replace('/(auth)');
+        router.replace('/(tabs)/accounts');
       }
     } else {
       // If user is not authenticated and not on sign-in/sign-up page, redirect to sign-in
@@ -76,7 +75,7 @@ export default function RootLayout() {
     }
 
     SplashScreen.hideAsync();
-  }, [user, initializing, segments]);
+  }, [user, initializing]);
 
   // Show loading screen while fonts are loading
   if (!fontsLoaded || initializing) {
@@ -84,10 +83,14 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="sign-in" />
-      <Stack.Screen name="sign-up" />
-      <Stack.Screen name="(auth)" />
-    </Stack>
+    <>
+      <StatusBar style="dark" />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="sign-in" />
+        <Stack.Screen name="sign-up" />
+      </Stack>
+    </>
   );
 }
+

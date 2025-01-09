@@ -123,10 +123,6 @@ export function useAccounts() {
 
   const getTotalBalance = () => {
     return accounts.reduce((total, account) => {
-      // For credit cards, negative balance means we owe money
-      if (account.type === 'CREDIT_CARD') {
-        return total - account.balance;
-      }
       return total + account.balance;
     }, 0);
   };

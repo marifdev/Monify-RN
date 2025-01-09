@@ -76,7 +76,7 @@ export default function SignUp() {
           createdAt: new Date(),
           updatedAt: new Date(),
         });
-        router.replace('/(auth)');
+        router.replace('/(tabs)/accounts');
       }
     } catch (err) {
       if (err instanceof z.ZodError) {
