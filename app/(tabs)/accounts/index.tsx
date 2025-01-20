@@ -120,14 +120,6 @@ export default function AccountsScreen() {
           </View>
         )}
       </ScrollView>
-
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push('/(tabs)/accounts/add-account')}
-      >
-        <MaterialCommunityIcons name="plus" size={24} color={theme.colors.white} />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -227,23 +219,4 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: theme.typography.bold,
   },
-  fab: {
-    position: 'absolute',
-    right: theme.spacing.lg,
-    bottom: theme.spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: theme.colors.black,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  }
 });
