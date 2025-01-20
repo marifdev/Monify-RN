@@ -17,6 +17,9 @@ export default function TabsLayout() {
   return (
     <Tabs>
       <Tabs.Screen name="accounts" options={{
+        tabBarIcon: ({ color, size }) => (
+          <MaterialCommunityIcons name="bank" color={color} size={size} />
+        ),
         title: 'Accounts', headerRight: () => (
           <TouchableOpacity onPress={logout} style={{ marginRight: 16 }}>
             <MaterialCommunityIcons
@@ -27,7 +30,12 @@ export default function TabsLayout() {
           </TouchableOpacity>
         ),
       }} />
-      <Tabs.Screen name="transactions" options={{ title: 'Transactions' }} />
+      <Tabs.Screen name="transactions" options={{
+        title: 'Transactions',
+        tabBarIcon: ({ color, size }) => (
+          <MaterialCommunityIcons name="cash-register" color={color} size={size} />
+        )
+      }} />
     </Tabs>
   );
 } 

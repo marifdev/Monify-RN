@@ -184,6 +184,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
+    textAlign: 'center',
     color: theme.colors.white,
     fontSize: 16,
     fontFamily: theme.typography.bold,
@@ -197,6 +198,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontSize: 16,
     fontFamily: theme.typography.medium,
+    textAlign: 'center',
   },
   error: {
     color: theme.colors.red,

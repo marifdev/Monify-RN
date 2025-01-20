@@ -77,6 +77,9 @@ export default function TransactionsScreen() {
             />
           </View>
           <View style={styles.transactionInfo}>
+            <Text style={styles.transactionTitle}>
+              {TRANSACTION_CATEGORIES[transaction.category].label}
+            </Text>
             <Text style={styles.transactionDescription}>
               {transaction.description}
             </Text>
@@ -160,11 +163,17 @@ const styles = StyleSheet.create({
   },
   transactionInfo: {
     flex: 1,
+    gap: 2,
   },
-  transactionDescription: {
+  transactionTitle: {
     fontSize: 16,
     fontFamily: theme.typography.medium,
     color: theme.colors.black,
+  },
+  transactionDescription: {
+    fontSize: 14,
+    fontFamily: theme.typography.regular,
+    color: theme.colors.gray[600],
   },
   transactionMeta: {
     fontSize: 14,

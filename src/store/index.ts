@@ -27,4 +27,14 @@ export const useAppStore = create<AppState>((set) => ({
   currency: 'USD',
   setTheme: (theme) => set({ theme }),
   setCurrency: (currency) => set({ currency }),
+}));
+
+interface RefreshState {
+  refreshTrigger: number;
+  refreshData: () => void;
+}
+
+export const useRefreshStore = create<RefreshState>((set) => ({
+  refreshTrigger: 0,
+  refreshData: () => set((state) => ({ refreshTrigger: state.refreshTrigger + 1 })),
 })); 

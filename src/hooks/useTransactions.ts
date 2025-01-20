@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { collection, query, orderBy, getDocs, addDoc, serverTimestamp, doc, updateDoc, runTransaction, where, deleteDoc, limit, DocumentData } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, addDoc, serverTimestamp, doc, updateDoc, runTransaction, where, deleteDoc, limit, DocumentData, Timestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { useAuthStore } from '../store';
-import { useFocusEffect } from 'expo-router';
+import { useAuthStore, useRefreshStore } from '../store';
 import { Transaction, TransactionType, TransactionCategory } from '../types';
 
 interface TransactionFilters {
@@ -30,6 +29,9 @@ export function useTransactions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState<TransactionFilters>({});
+  const user = useAuthStore((state) => state.user);
+  const refreshTrigger = useRefreshStore((state) => state.refreshTrigger);
+  const refreshData = useRefreshStore((state) => state.refreshData);
   const [stats, setStats] = useState<TransactionStats>({
     totalIncome: 0,
     totalExpense: 0,
@@ -37,7 +39,6 @@ export function useTransactions() {
     categoryTotals: {} as Record<TransactionCategory, number>,
     monthlyTotals: {},
   });
-  const user = useAuthStore((state) => state.user);
 
   // Validate transaction data
   const validateTransaction = async (
@@ -184,31 +185,13 @@ export function useTransactions() {
   }, []);
 
   useEffect(() => {
-    if (transactions.length > 0) {
-      applyFilters(transactions);
-      calculateStats(transactions);
-    }
-  }, [filters, transactions]);
-
-  // Fetch transactions when user changes
-  useEffect(() => {
     if (user) {
       fetchTransactions();
     } else {
       setTransactions([]);
       setFilteredTransactions([]);
     }
-  }, [user]);
-
-  // Fetch transactions when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      if (user) {
-        console.log('Screen focused, fetching transactions');
-        fetchTransactions();
-      }
-    }, [user])
-  );
+  }, [user, refreshTrigger]);
 
   const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
     try {
@@ -217,17 +200,21 @@ export function useTransactions() {
       await runTransaction(db, async (transaction) => {
         // Get account documents for validation
         let accountDoc, fromAccountDoc, toAccountDoc;
+
         if (transactionData.type === 'transfer') {
-          fromAccountDoc = await transaction.get(
-            doc(db, `users/${user.id}/accounts`, transactionData.fromAccountId!)
-          );
-          toAccountDoc = await transaction.get(
-            doc(db, `users/${user.id}/accounts`, transactionData.toAccountId!)
-          );
+          if (!transactionData.fromAccountId || !transactionData.toAccountId) {
+            throw new Error('Transfer requires both source and destination accounts');
+          }
+          const fromAccountRef = doc(db, 'users', user.id, 'accounts', transactionData.fromAccountId as string);
+          const toAccountRef = doc(db, 'users', user.id, 'accounts', transactionData.toAccountId as string);
+          fromAccountDoc = await transaction.get(fromAccountRef);
+          toAccountDoc = await transaction.get(toAccountRef);
         } else {
-          accountDoc = await transaction.get(
-            doc(db, `users/${user.id}/accounts`, transactionData.accountId)
-          );
+          if (!transactionData.accountId) {
+            throw new Error('Transaction requires an account');
+          }
+          const accountRef = doc(db, 'users', user.id, 'accounts', transactionData.accountId as string);
+          accountDoc = await transaction.get(accountRef);
         }
 
         // Validate the transaction
@@ -242,23 +229,21 @@ export function useTransactions() {
           ...transactionData,
           userId: user.id,
           status: 'completed' as const,
-          date: serverTimestamp(),
+          date: Timestamp.fromDate(transactionData.date),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
 
         // Add the transaction document
-        const transactionsCollectionRef = collection(db, `users/${user.id}/transactions`);
-        const transactionDocRef = await addDoc(transactionsCollectionRef, newTransaction);
+        const transactionDocRef = await addDoc(
+          collection(db, 'users', user.id, 'transactions'),
+          newTransaction
+        );
 
         // Update account balances based on transaction type
         if (transactionData.type === 'transfer') {
-          if (!transactionData.fromAccountId || !transactionData.toAccountId) {
-            throw new Error('Transfer requires both source and destination accounts');
-          }
-
-          const fromAccountRef = doc(db, `users/${user.id}/accounts`, transactionData.fromAccountId);
-          const toAccountRef = doc(db, `users/${user.id}/accounts`, transactionData.toAccountId);
+          const fromAccountRef = doc(db, 'users', user.id, 'accounts', transactionData.fromAccountId as string);
+          const toAccountRef = doc(db, 'users', user.id, 'accounts', transactionData.toAccountId as string);
 
           // Subtract from source account
           transaction.update(fromAccountRef, {
@@ -272,7 +257,7 @@ export function useTransactions() {
             updatedAt: serverTimestamp(),
           });
         } else {
-          const accountRef = doc(db, `users/${user.id}/accounts`, transactionData.accountId);
+          const accountRef = doc(db, 'users', user.id, 'accounts', transactionData.accountId as string);
           const currentBalance = accountDoc!.data()!.balance;
           const newBalance = transactionData.type === 'income'
             ? currentBalance + transactionData.amount
@@ -287,7 +272,7 @@ export function useTransactions() {
         return transactionDocRef.id;
       });
 
-      await fetchTransactions();
+      refreshData();
     } catch (err) {
       console.error('Error adding transaction:', err);
       throw err instanceof Error ? err : new Error('Failed to add transaction');
@@ -311,8 +296,8 @@ export function useTransactions() {
 
         // Reverse the account balance changes
         if (transactionData.type === 'transfer') {
-          const fromAccountRef = doc(db, `users/${user.id}/accounts`, transactionData.fromAccountId!);
-          const toAccountRef = doc(db, `users/${user.id}/accounts`, transactionData.toAccountId!);
+          const fromAccountRef = doc(db, `users/${user.id}/accounts`, transactionData.fromAccountId as string);
+          const toAccountRef = doc(db, `users/${user.id}/accounts`, transactionData.toAccountId as string);
 
           const fromAccountDoc = await transaction.get(fromAccountRef);
           const toAccountDoc = await transaction.get(toAccountRef);
@@ -333,7 +318,7 @@ export function useTransactions() {
             updatedAt: serverTimestamp(),
           });
         } else {
-          const accountRef = doc(db, `users/${user.id}/accounts`, transactionData.accountId);
+          const accountRef = doc(db, `users/${user.id}/accounts`, transactionData.accountId as string);
           const accountDoc = await transaction.get(accountRef);
 
           if (!accountDoc.exists()) {
@@ -355,7 +340,7 @@ export function useTransactions() {
         await deleteDoc(transactionRef);
       });
 
-      await fetchTransactions();
+      refreshData();
     } catch (err) {
       console.error('Error deleting transaction:', err);
       throw err instanceof Error ? err : new Error('Failed to delete transaction');
@@ -371,8 +356,7 @@ export function useTransactions() {
     filters,
     setFilters,
     addTransaction,
-    runTransaction,
     deleteTransaction,
-    refreshTransactions: fetchTransactions,
+    refreshTransactions: refreshData,
   };
 } 

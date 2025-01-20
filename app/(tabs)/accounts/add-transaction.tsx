@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Text } from '../../../src/components';
 import { theme } from '../../../src/theme';
@@ -8,6 +8,7 @@ import { useAccounts } from '../../../src/hooks/useAccounts';
 import { Account, TransactionType, TransactionCategory, TRANSACTION_CATEGORIES } from '../../../src/types';
 import { StatusBar } from 'expo-status-bar';
 import { useTransactions } from '../../../src/hooks/useTransactions';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const TRANSACTION_TYPES: Record<TransactionType, { title: string; icon: string; color: string }> = {
   income: {
@@ -39,8 +40,47 @@ export default function AddTransactionScreen() {
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [selectedToAccount, setSelectedToAccount] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<TransactionCategory>('other');
+  const [date, setDate] = useState(new Date());
+  const [tempDate, setTempDate] = useState(new Date());
+  const [mode, setMode] = useState<'date' | 'time'>('date');
+  const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const onChange = (event: any, selectedDate?: Date) => {
+    if (selectedDate) {
+      setTempDate(selectedDate);
+    }
+  };
+
+  const showPicker = () => {
+    setShow(true);
+    setMode('date');
+    setTempDate(date);
+  };
+
+  const handleSaveDateTime = () => {
+    if (mode === 'date') {
+      setMode('time');
+    } else {
+      setDate(tempDate);
+      setShow(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setShow(false);
+  };
+
+  const formatDateTime = (date: Date) => {
+    return date.toLocaleString('tr-TR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   const handleSubmit = async () => {
     try {
@@ -68,16 +108,11 @@ export default function AddTransactionScreen() {
         return;
       }
 
-      if (!description.trim()) {
-        setError('Description is required');
-        return;
-      }
-
       const transactionData = {
         type,
         amount: amountNumber,
-        description: description.trim(),
-        date: new Date(),
+        description: description.trim() || 'Untitled Transaction',
+        date,
         category: selectedCategory,
         status: 'completed' as const,
         accountId: selectedAccount!,
@@ -163,6 +198,77 @@ export default function AddTransactionScreen() {
           style={styles.input}
           placeholderTextColor={theme.colors.gray[500]}
         />
+
+        <Text style={styles.label}>Category</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoryScrollView}
+        >
+          {Object.entries(TRANSACTION_CATEGORIES).map(([key, value]) => (
+            <TouchableOpacity
+              key={key}
+              style={[
+                styles.categoryOption,
+                selectedCategory === key && {
+                  backgroundColor: config.color,
+                  borderColor: config.color,
+                }
+              ]}
+              onPress={() => setSelectedCategory(key as TransactionCategory)}
+            >
+              <MaterialCommunityIcons
+                name={value.icon as any}
+                size={24}
+                color={selectedCategory === key ? theme.colors.white : theme.colors.gray[600]}
+              />
+              <Text style={[
+                styles.categoryLabel,
+                selectedCategory === key && { color: theme.colors.white }
+              ]}>
+                {value.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <Text style={styles.label}>Date and Time</Text>
+        <TouchableOpacity
+          style={styles.dateTimeButton}
+          onPress={showPicker}
+        >
+          <MaterialCommunityIcons name="calendar-clock" size={20} color={theme.colors.gray[600]} />
+          <Text style={styles.dateTimeText}>{formatDateTime(date)}</Text>
+        </TouchableOpacity>
+
+        {show && (
+          <View style={styles.dateTimePickerContainer}>
+            <DateTimePicker
+              testID="dateTimePicker"
+              value={tempDate}
+              mode={mode}
+              is24Hour={true}
+              display="spinner"
+              onChange={onChange}
+            />
+            <View style={styles.dateTimeButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.dateTimeActionButton, styles.cancelButton]}
+                onPress={handleCancel}
+              >
+                <Text style={styles.dateTimeActionButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dateTimeActionButton, styles.saveButton]}
+                onPress={handleSaveDateTime}
+              >
+                <Text style={[styles.dateTimeActionButtonText, { color: theme.colors.white }]}>
+                  {mode === 'date' ? 'Next' : 'Save'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         <Text style={styles.label}>{type === 'transfer' ? 'From Account' : 'Account'}</Text>
         <View style={styles.accountsGrid}>
@@ -299,15 +405,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     marginBottom: theme.spacing.md,
   },
+  categoryScrollView: {
+    marginHorizontal: -theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+  },
   categoryOption: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: theme.spacing.sm,
+    padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
     borderColor: theme.colors.gray[300],
     marginRight: theme.spacing.sm,
     minWidth: 80,
+    backgroundColor: theme.colors.white,
   },
   categoryLabel: {
     fontSize: 12,
@@ -315,5 +426,49 @@ const styles = StyleSheet.create({
     color: theme.colors.gray[600],
     marginTop: theme.spacing.xs,
     textAlign: 'center',
+  },
+  dateTimeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    height: 52,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+  },
+  dateTimeText: {
+    fontSize: 16,
+    fontFamily: theme.typography.regular,
+    color: theme.colors.black,
+  },
+  dateTimePickerContainer: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginTop: theme.spacing.sm,
+  },
+  dateTimeButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  dateTimeActionButton: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.sm,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  saveButton: {
+    backgroundColor: theme.colors.primary,
+  },
+  cancelButton: {
+    backgroundColor: theme.colors.gray[200],
+  },
+  dateTimeActionButtonText: {
+    fontSize: 16,
+    fontFamily: theme.typography.medium,
+    color: theme.colors.black,
   },
 }); 

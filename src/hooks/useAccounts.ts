@@ -1,5 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import { useEffect, useState } from 'react';
 import {
   collection,
   query,
@@ -13,14 +12,16 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { Account, AccountSchema } from '../types';
-import { useAuthStore } from '../store';
+import { Account } from '../types';
+import { useAuthStore, useRefreshStore } from '../store';
 
 export function useAccounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const user = useAuthStore((state) => state.user);
+  const refreshTrigger = useRefreshStore((state) => state.refreshTrigger);
+  const refreshData = useRefreshStore((state) => state.refreshData);
 
   const fetchAccounts = async () => {
     if (!user) return;
@@ -28,7 +29,6 @@ export function useAccounts() {
     try {
       setLoading(true);
       const accountsCollectionRef = collection(db, `users/${user.id}/accounts`);
-      console.log('Fetching accounts for user:', user.id);
       const accountsSnapshot = await getDocs(accountsCollectionRef);
 
       const accountsList = accountsSnapshot.docs.map(doc => {
@@ -40,7 +40,6 @@ export function useAccounts() {
           updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : data.updatedAt,
         } as Account;
       });
-      console.log('Accounts fetched:', accountsList.length);
 
       setAccounts(accountsList);
       setError(null);
@@ -52,24 +51,13 @@ export function useAccounts() {
     }
   };
 
-  // Fetch accounts when user changes
   useEffect(() => {
     if (user) {
       fetchAccounts();
     } else {
       setAccounts([]);
     }
-  }, [user]);
-
-  // Fetch accounts when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      if (user) {
-        console.log('Screen focused, fetching accounts');
-        fetchAccounts();
-      }
-    }, [user])
-  );
+  }, [user, refreshTrigger]);
 
   const addAccount = async (accountData: Omit<Account, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
     try {
@@ -85,8 +73,7 @@ export function useAccounts() {
 
       const accountsCollectionRef = collection(db, `users/${user.id}/accounts`);
       const docRef = await addDoc(accountsCollectionRef, newAccount);
-      console.log('Account added with ID:', docRef.id);
-
+      refreshData();
       return docRef.id;
     } catch (err) {
       console.error('Error adding account:', err);
@@ -97,14 +84,11 @@ export function useAccounts() {
   const updateAccount = async (accountId: string, updates: Partial<Account>) => {
     try {
       const accountRef = doc(db, `users/${user!.id}/accounts`, accountId);
-      const updateData = {
+      await updateDoc(accountRef, {
         ...updates,
         updatedAt: serverTimestamp(),
-      };
-
-      await updateDoc(accountRef, updateData);
-      console.log('Account updated:', accountId);
-      await fetchAccounts();
+      });
+      refreshData();
     } catch (err) {
       console.error('Error updating account:', err);
       throw err instanceof Error ? err : new Error('Failed to update account');
@@ -115,6 +99,7 @@ export function useAccounts() {
     try {
       await updateAccount(accountId, { isArchived: true });
       console.log('Account archived:', accountId);
+      refreshData();
     } catch (err) {
       console.error('Error archiving account:', err);
       throw err instanceof Error ? err : new Error('Failed to archive account');
@@ -135,6 +120,6 @@ export function useAccounts() {
     updateAccount,
     archiveAccount,
     getTotalBalance,
-    refreshAccounts: fetchAccounts,
+    refreshAccounts: refreshData,
   };
 } 
