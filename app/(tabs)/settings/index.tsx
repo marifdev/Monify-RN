@@ -73,7 +73,7 @@ export default function SettingsScreen() {
         {renderSettingItem(
           'information',
           'Version',
-          '1.0.0',
+          '0.0.1',
           () => { }
         )}
         {renderSettingItem(
