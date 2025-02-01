@@ -9,7 +9,7 @@ export const AccountSchema = z.object({
   name: z.string(),
   type: AccountTypeSchema,
   balance: z.number(),
-  currency: z.string().default('TRY'),
+  currency: z.string().default('USD'),
   userId: z.string(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -85,7 +85,7 @@ export const UserSchema = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
   settings: z.object({
-    currency: z.string().default('TRY'),
+    currency: z.string().default('USD'),
     theme: z.enum(['light', 'dark', 'system']).default('system'),
     notifications: z.boolean().default(true),
   }),

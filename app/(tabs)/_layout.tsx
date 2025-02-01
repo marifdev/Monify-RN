@@ -1,5 +1,5 @@
-import { Stack, Tabs, router } from 'expo-router';
-import { View, TouchableOpacity } from 'react-native';
+import { Tabs, router } from 'expo-router';
+import { TouchableOpacity, Alert, } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { auth } from '../../src/services/firebase';
 import { signOut } from 'firebase/auth';
@@ -7,11 +7,18 @@ import { theme } from '../../src/theme';
 
 export default function TabsLayout() {
   const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout', onPress: async () => {
+          try {
+            await signOut(auth);
+          } catch (error) {
+            console.error('Error signing out:', error);
+          }
+        }
+      },
+    ]);
   };
 
   return (
@@ -24,7 +31,7 @@ export default function TabsLayout() {
         headerRight: () => (
           <TouchableOpacity
             style={{ marginRight: 16 }}
-            onPress={() => router.push('/accounts/add-account')}>
+            onPress={() => router.push('/add-account')}>
             <MaterialCommunityIcons
               name="plus"
               size={24}

@@ -3,6 +3,7 @@ import { Text } from '../../../src/components';
 import { theme } from '../../../src/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore, useAppStore } from '../../../src/store';
+import { router } from 'expo-router';
 
 export default function SettingsScreen() {
   const user = useAuthStore((state) => state.user);
@@ -12,7 +13,7 @@ export default function SettingsScreen() {
     icon: string,
     title: string,
     value: string,
-    onPress: () => void
+    onPress?: () => void
   ) => (
     <TouchableOpacity style={styles.settingItem} onPress={onPress}>
       <View style={styles.settingLeft}>
@@ -25,11 +26,13 @@ export default function SettingsScreen() {
       </View>
       <View style={styles.settingRight}>
         <Text style={styles.settingValue}>{value}</Text>
-        <MaterialCommunityIcons
-          name="chevron-right"
-          size={24}
-          color={theme.colors.gray[400]}
-        />
+        {onPress && (
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={24}
+            color={theme.colors.gray[400]}
+          />
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -42,13 +45,11 @@ export default function SettingsScreen() {
           'email',
           'Email',
           user?.email || '',
-          () => { }
         )}
         {renderSettingItem(
           'account',
           'Display Name',
           user?.displayName || 'Not set',
-          () => { }
         )}
       </View>
 
@@ -64,7 +65,7 @@ export default function SettingsScreen() {
           'currency-usd',
           'Currency',
           currency,
-          () => { }
+          () => router.push('/settings/currency')
         )}
       </View>
 
@@ -74,7 +75,7 @@ export default function SettingsScreen() {
           'information',
           'Version',
           '0.0.1',
-          () => { }
+
         )}
         {renderSettingItem(
           'shield-check',

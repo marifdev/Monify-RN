@@ -1,23 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Text } from '../../../src/components';
-import { theme } from '../../../src/theme';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { Text } from '../src/components';
+import { theme } from '../src/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useAccounts } from '../../../src/hooks/useAccounts';
-import { Account, TransactionType, TransactionCategory, TRANSACTION_CATEGORIES } from '../../../src/types';
-import { StatusBar } from 'expo-status-bar';
-import { useTransactions } from '../../../src/hooks/useTransactions';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { useAccounts } from '../src/hooks/useAccounts';
+import { Account, TransactionType, TransactionCategory, TRANSACTION_CATEGORIES } from '../src/types';
+import { useTransactions } from '../src/hooks/useTransactions';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { useCurrency } from '../src/hooks/useCurrency';
 
 const TRANSACTION_TYPES: Record<TransactionType, { title: string; icon: string; color: string }> = {
   income: {
-    title: 'Gelir Ekle',
+    title: 'Add Income',
     icon: 'arrow-up',
     color: theme.colors.primary,
   },
   expense: {
-    title: 'Gider Ekle',
+    title: 'Add Expense',
     icon: 'arrow-down',
     color: theme.colors.red,
   },
@@ -32,8 +32,10 @@ export default function AddTransactionScreen() {
   const params = useLocalSearchParams<{ type: TransactionType }>();
   const type = params.type as TransactionType;
   const config = TRANSACTION_TYPES[type];
+  const navigation = useNavigation();
   const { accounts } = useAccounts();
   const { addTransaction } = useTransactions();
+  const { format } = useCurrency();
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -41,39 +43,36 @@ export default function AddTransactionScreen() {
   const [selectedToAccount, setSelectedToAccount] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<TransactionCategory>('other');
   const [date, setDate] = useState(new Date());
-  const [tempDate, setTempDate] = useState(new Date());
-  const [mode, setMode] = useState<'date' | 'time'>('date');
-  const [show, setShow] = useState(false);
+  const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const onChange = (event: any, selectedDate?: Date) => {
-    if (selectedDate) {
-      setTempDate(selectedDate);
-    }
+  // Set header configuration when the screen mounts
+  useEffect(() => {
+    navigation.setOptions({
+      title: config.title,
+      headerStyle: {
+        backgroundColor: config.color,
+      },
+      headerTintColor: '#FFFFFF',
+    });
+  }, [navigation, config]);
+
+  const showDatePicker = () => {
+    setDatePickerVisible(true);
   };
 
-  const showPicker = () => {
-    setShow(true);
-    setMode('date');
-    setTempDate(date);
+  const hideDatePicker = () => {
+    setDatePickerVisible(false);
   };
 
-  const handleSaveDateTime = () => {
-    if (mode === 'date') {
-      setMode('time');
-    } else {
-      setDate(tempDate);
-      setShow(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setShow(false);
+  const handleConfirm = (selectedDate: Date) => {
+    setDate(selectedDate);
+    hideDatePicker();
   };
 
   const formatDateTime = (date: Date) => {
-    return date.toLocaleString('tr-TR', {
+    return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -157,10 +156,7 @@ export default function AddTransactionScreen() {
           styles.accountBalance,
           isSelected && { color: theme.colors.white }
         ]}>
-          ₺{account.balance.toLocaleString('tr-TR', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
+          {format(account.balance)}
         </Text>
       </View>
     </TouchableOpacity>
@@ -168,17 +164,6 @@ export default function AddTransactionScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <StatusBar style="light" />
-      <View style={[styles.header, { backgroundColor: config.color }]}>
-        <View style={styles.headerContent}>
-          <MaterialCommunityIcons name={config.icon as any} size={24} color={theme.colors.white} />
-          <Text style={styles.title}>{config.title}</Text>
-        </View>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-          <MaterialCommunityIcons name="close" size={24} color={theme.colors.white} />
-        </TouchableOpacity>
-      </View>
-
       <View style={styles.form}>
         <Text style={styles.label}>Amount</Text>
         <TextInput
@@ -235,40 +220,26 @@ export default function AddTransactionScreen() {
         <Text style={styles.label}>Date and Time</Text>
         <TouchableOpacity
           style={styles.dateTimeButton}
-          onPress={showPicker}
+          onPress={showDatePicker}
         >
-          <MaterialCommunityIcons name="calendar-clock" size={20} color={theme.colors.gray[600]} />
+          <MaterialCommunityIcons
+            name="calendar-clock"
+            size={20}
+            color={theme.colors.gray[600]}
+          />
           <Text style={styles.dateTimeText}>{formatDateTime(date)}</Text>
         </TouchableOpacity>
 
-        {show && (
-          <View style={styles.dateTimePickerContainer}>
-            <DateTimePicker
-              testID="dateTimePicker"
-              value={tempDate}
-              mode={mode}
-              is24Hour={true}
-              display="spinner"
-              onChange={onChange}
-            />
-            <View style={styles.dateTimeButtonsContainer}>
-              <TouchableOpacity
-                style={[styles.dateTimeActionButton, styles.cancelButton]}
-                onPress={handleCancel}
-              >
-                <Text style={styles.dateTimeActionButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dateTimeActionButton, styles.saveButton]}
-                onPress={handleSaveDateTime}
-              >
-                <Text style={[styles.dateTimeActionButtonText, { color: theme.colors.white }]}>
-                  {mode === 'date' ? 'Next' : 'Save'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+        <DateTimePickerModal
+          isVisible={isDatePickerVisible}
+          mode="datetime"
+          onConfirm={handleConfirm}
+          onCancel={hideDatePicker}
+          date={date}
+          is24Hour={true}
+          minimumDate={new Date(2000, 0, 1)}
+          maximumDate={new Date(2100, 11, 31)}
+        />
 
         <Text style={styles.label}>{type === 'transfer' ? 'From Account' : 'Account'}</Text>
         <View style={styles.accountsGrid}>
@@ -314,25 +285,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: theme.spacing.md,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-  },
-  title: {
-    fontSize: 20,
-    fontFamily: theme.typography.bold,
-    color: theme.colors.white,
-  },
-  closeButton: {
-    padding: theme.spacing.xs,
   },
   form: {
     padding: theme.spacing.md,
@@ -430,45 +382,14 @@ const styles = StyleSheet.create({
   dateTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
-    height: 52,
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
+    backgroundColor: theme.colors.gray[100],
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   dateTimeText: {
+    marginLeft: 8,
+    color: theme.colors.gray[600],
     fontSize: 16,
-    fontFamily: theme.typography.regular,
-    color: theme.colors.black,
-  },
-  dateTimePickerContainer: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    marginTop: theme.spacing.sm,
-  },
-  dateTimeButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: theme.spacing.sm,
-    marginTop: theme.spacing.md,
-  },
-  dateTimeActionButton: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.sm,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  saveButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  cancelButton: {
-    backgroundColor: theme.colors.gray[200],
-  },
-  dateTimeActionButtonText: {
-    fontSize: 16,
-    fontFamily: theme.typography.medium,
-    color: theme.colors.black,
   },
 }); 

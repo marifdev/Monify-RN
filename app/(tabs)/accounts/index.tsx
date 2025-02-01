@@ -5,9 +5,11 @@ import { theme } from '../../../src/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAccounts } from '../../../src/hooks/useAccounts';
 import { Account } from '../../../src/types';
+import { useCurrency } from '../../../src/hooks/useCurrency';
 
 export default function AccountsScreen() {
   const { accounts, loading, getTotalBalance } = useAccounts();
+  const { format } = useCurrency();
 
   if (loading) {
     return (
@@ -41,10 +43,7 @@ export default function AccountsScreen() {
         <Text style={styles.accountName}>{account.name}</Text>
       </View>
       <Text style={styles.accountBalance}>
-        ₺{account.balance.toLocaleString('tr-TR', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}
+        {format(account.balance)}
       </Text>
     </TouchableOpacity>
   );
@@ -57,33 +56,30 @@ export default function AccountsScreen() {
             Total Balance
           </Text>
           <Text variant="bold" style={styles.totalBalance}>
-            ₺{getTotalBalance().toLocaleString('tr-TR', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+            {format(getTotalBalance())}
           </Text>
         </View>
 
         <View style={styles.actions}>
           <TouchableOpacity
             style={[styles.actionButton, styles.incomeButton]}
-            onPress={() => router.push('/(tabs)/accounts/add-transaction?type=income')}
+            onPress={() => router.push('/add-transaction?type=income')}
           >
             <MaterialCommunityIcons name="arrow-up" size={24} color={theme.colors.white} />
-            <Text style={styles.actionButtonText}>Gelir</Text>
+            <Text style={styles.actionButtonText}>Income</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.actionButton, styles.expenseButton]}
-            onPress={() => router.push('/(tabs)/accounts/add-transaction?type=expense')}
+            onPress={() => router.push('/add-transaction?type=expense')}
           >
             <MaterialCommunityIcons name="arrow-down" size={24} color={theme.colors.white} />
-            <Text style={styles.actionButtonText}>Gider</Text>
+            <Text style={styles.actionButtonText}>Expense</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.actionButton, styles.transferButton]}
-            onPress={() => router.push('/(tabs)/accounts/add-transaction?type=transfer')}
+            onPress={() => router.push('/add-transaction?type=transfer')}
           >
             <MaterialCommunityIcons name="arrow-right" size={24} color={theme.colors.white} />
             <Text style={styles.actionButtonText}>Transfer</Text>
@@ -93,7 +89,7 @@ export default function AccountsScreen() {
         {/* Cash Accounts */}
         {cashAccounts.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Nakit</Text>
+            <Text style={styles.sectionTitle}>Cash</Text>
             <View style={styles.accountsGrid}>
               {cashAccounts.map(renderAccountCard)}
             </View>
@@ -103,7 +99,7 @@ export default function AccountsScreen() {
         {/* Credit Cards */}
         {creditCards.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Kredi Kartlari</Text>
+            <Text style={styles.sectionTitle}>Credit Cards</Text>
             <View style={styles.accountsGrid}>
               {creditCards.map(renderAccountCard)}
             </View>
@@ -113,7 +109,7 @@ export default function AccountsScreen() {
         {/* Bank Accounts */}
         {bankAccounts.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Banka Hesaplari</Text>
+            <Text style={styles.sectionTitle}>Bank Accounts</Text>
             <View style={styles.accountsGrid}>
               {bankAccounts.map(renderAccountCard)}
             </View>

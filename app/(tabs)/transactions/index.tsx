@@ -5,10 +5,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTransactions } from '../../../src/hooks/useTransactions';
 import { useAccounts } from '../../../src/hooks/useAccounts';
 import { TRANSACTION_CATEGORIES, TransactionCategory } from '../../../src/types/index';
+import { useCurrency } from '../../../src/hooks/useCurrency';
 
 export default function TransactionsScreen() {
   const { transactions, loading } = useTransactions();
   const { accounts } = useAccounts();
+  const { format } = useCurrency();
 
   if (loading) {
     return (
@@ -96,14 +98,11 @@ export default function TransactionsScreen() {
                 { color: getTransactionColor(transaction.type) },
               ]}
             >
-              {transaction.type === 'expense' ? '-' : ''}₺
-              {transaction.amount.toLocaleString('tr-TR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+              {transaction.type === 'expense' ? '-' : ''}
+              {format(transaction.amount)}
             </Text>
             <Text style={styles.dateText}>
-              {transaction.date.toLocaleDateString('tr-TR', {
+              {transaction.date.toLocaleDateString('en-US', {
                 day: 'numeric',
                 month: 'short',
               })}

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { Text } from '../../../src/components';
-import { theme } from '../../../src/theme';
-import { useAccounts } from '../../../src/hooks/useAccounts';
+import { Text } from '../src/components';
+import { theme } from '../src/theme';
+import { useAccounts } from '../src/hooks/useAccounts';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Account, AccountType } from '../../../src/types';
+import { Account, AccountType } from '../src/types';
 import { StatusBar } from 'expo-status-bar';
 
 const ACCOUNT_TYPES = {
@@ -57,14 +57,6 @@ export default function AddAccountScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <StatusBar style="light" />
-      <View style={styles.header}>
-        <Text style={styles.title}>Add Account</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-          <MaterialCommunityIcons name="close" size={24} color={theme.colors.black} />
-        </TouchableOpacity>
-      </View>
-
       <View style={styles.form}>
         <Text style={styles.label}>Account Type</Text>
         <View style={styles.typeContainer}>
@@ -146,13 +138,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.gray[200],
-  },
-  title: {
-    fontSize: 20,
-    fontFamily: theme.typography.bold,
-  },
-  closeButton: {
-    padding: theme.spacing.xs,
   },
   form: {
     padding: theme.spacing.md,
